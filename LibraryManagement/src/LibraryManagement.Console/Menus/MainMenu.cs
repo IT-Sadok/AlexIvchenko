@@ -1,5 +1,6 @@
 ﻿using LibraryManagement.Application.Abstractions;
-using LibraryManagement.Application.DTOs;
+using LibraryManagement.Application.Common;
+using LibraryManagement.Application.Models;
 using LibraryManagement.Console.Input;
 using LibraryManagement.Console.Output;
 using LibraryManagement.Domain.Exceptions;
@@ -50,37 +51,6 @@ public class MainMenu
                 _logger.LogWarning("Book was not found. Code: {BookCode}", exception.Code);
 #endif
                 _writer.WriteError("Book was not found.");
-            }
-            catch (BookAlreadyBorrowedException exception)
-            {
-#if DEBUG
-
-                _logger.LogWarning(exception, "Book is already borrowed.");
-#else
-                _logger.LogWarning("Book is already borrowed. Code: {BookCode}", exception.Code);
-#endif
-                _writer.WriteError("Book is already borrowed.");
-            }
-            catch (BookAlreadyAvailableException exception)
-            {
-                //
-#if DEBUG
-
-                _logger.LogWarning(exception, "Book is already available.");
-#else
-                _logger.LogWarning("Book is already available. Code: {BookCode}", exception.Code);
-#endif
-                _writer.WriteError("Book is already available.");
-            }
-            catch (BookDeletedException exception)
-            {
-#if DEBUG
-
-                _logger.LogWarning(exception, "Book is deleted.");
-#else
-                _logger.LogWarning("Book is deleted. Code: {BookCode}", exception.Code);
-#endif
-                _writer.WriteError("Book is deleted and cannot be modified.");
             }
             catch (ArgumentException exception)
             {
@@ -211,16 +181,26 @@ public class MainMenu
             Code = code
         };
 
-        var book = await _bookService.AddAsync(request);
+        var result = await _bookService.AddAsync(request);
 
-        _writer.WriteSuccess($"Book '{book.Title}' was added successfully.");
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
+
+        _writer.WriteSuccess($"Book '{result.Value!.Title}' was added successfully.");
     }
 
     private async Task DeleteBookAsync()
     {
         string code = _inputReader.ReadRequiredString("Enter book code: ");
 
-        await _bookService.DeleteAsync(code);
+        var result = await _bookService.DeleteAsync(code);
+
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
 
         _writer.WriteSuccess("Book was deleted successfully.");
     }
@@ -229,30 +209,50 @@ public class MainMenu
     {
         string searchTerm = _inputReader.ReadRequiredString("Enter search term (title, author, or code): ");
 
-        var books = await _bookService.SearchAsync(searchTerm);
+        var result = await _bookService.SearchAsync(searchTerm);
 
-        _writer.WriteBooks(books);
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
+
+        _writer.WriteBooks(result.Value!);
     }
 
     private async Task ShowAllBooksAsync()
     {
-        var books = await _bookService.GetAllAsync();
+        var result = await _bookService.GetAllAsync();
 
-        _writer.WriteBooks(books);
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
+
+        _writer.WriteBooks(result.Value!);
     }
 
     private async Task ShowAvailableBooksAsync()
     {
-        var books = await _bookService.GetAvailableAsync();
+        var result = await _bookService.GetAvailableAsync();
 
-        _writer.WriteBooks(books);
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
+
+        _writer.WriteBooks(result.Value!);
     }
 
     private async Task BorrowBookAsync()
     {
         string code = _inputReader.ReadRequiredString("Enter book code: ");
 
-        await _bookService.BorrowAsync(code);
+        var result = await _bookService.BorrowAsync(code);
+
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
 
         _writer.WriteSuccess("Book was borrowed successfully.");
     }
@@ -261,7 +261,12 @@ public class MainMenu
     {
         string code = _inputReader.ReadRequiredString("Enter book code: ");
 
-        await _bookService.ReturnAsync(code);
+        var result = await _bookService.ReturnAsync(code);
+
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
 
         _writer.WriteSuccess("Book was returned successfully.");
     }
@@ -280,8 +285,32 @@ public class MainMenu
             Year = year
         };
 
-        var updatedBook = await _bookService.UpdateAsync(code, request);
+        var result = await _bookService.UpdateAsync(code, request);
 
-        _writer.WriteSuccess($"Book '{updatedBook.Title}' was updated successfully.");
+        if (TryWriteResultError(result))
+        {
+            return;
+        }
+
+        _writer.WriteSuccess($"Book '{result.Value!.Title}' was updated successfully.");
+    }
+
+    private void WriteResultError(Result result)
+    {
+        if (result.IsFailure)
+        {
+            _writer.WriteError(result.Error ?? "Operation failed.");
+        }
+    }
+
+    private bool TryWriteResultError(Result result)
+    {
+        if (result.IsSuccess)
+        {
+            return false;
+        }
+
+        _writer.WriteError(result.Error ?? "Operation failed.");
+        return true;
     }
 }

@@ -1,4 +1,5 @@
-﻿using LibraryManagement.Application.DTOs;
+﻿
+using LibraryManagement.Application.Models;
 
 namespace LibraryManagement.Application.Validators;
 

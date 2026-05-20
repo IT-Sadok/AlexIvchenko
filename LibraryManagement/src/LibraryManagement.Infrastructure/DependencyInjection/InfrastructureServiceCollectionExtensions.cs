@@ -13,7 +13,7 @@ public static class InfrastructureServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.Configure<LibraryStorageOptions>(
-            configuration.GetSection("LibraryStorage"));
+            configuration.GetSection(LibraryStorageOptions.SectionName));
 
         services.AddSingleton<JsonFileContext>();
         services.AddScoped<IBookRepository, JsonBookRepository>();

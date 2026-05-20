@@ -1,15 +1,16 @@
-﻿using LibraryManagement.Application.DTOs;
+﻿using LibraryManagement.Application.Common;
+using LibraryManagement.Application.Models;
 
 namespace LibraryManagement.Application.Abstractions;
 
 public interface IBookService
 {
-    Task<BookDto> AddAsync(CreateBookRequest request);
-    Task<BookDto> UpdateAsync(string code, UpdateBookRequest request);
-    Task DeleteAsync(string code);
-    Task<IReadOnlyCollection<BookDto>> GetAllAsync();
-    Task<IReadOnlyCollection<BookDto>> GetAvailableAsync();
-    Task<IReadOnlyCollection<BookDto>> SearchAsync(string searchTerm);
-    Task BorrowAsync(string code);
-    Task ReturnAsync(string code);
+    Task<Result<BookModel>> AddAsync(CreateBookRequest request);
+    Task<Result<BookModel>> UpdateAsync(string code, UpdateBookRequest request);
+    Task<Result> DeleteAsync(string code);
+    Task<Result<IReadOnlyCollection<BookModel>>> GetAllAsync();
+    Task<Result<IReadOnlyCollection<BookModel>>> GetAvailableAsync();
+    Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(string searchTerm);
+    Task<Result> BorrowAsync(string code);
+    Task<Result> ReturnAsync(string code);
 }

@@ -42,7 +42,11 @@ public class Book : BaseEntity
 
         if (Status == BookStatus.Borrowed)
         {
-            throw new BookAlreadyBorrowedException(Code);
+            throw new BookStateException(
+                        Code,
+                        Status,
+                        "Borrow",
+                        $"Book with code '{Code}' cannot be borrowed because it is already borrowed.");
         }
 
         Status = BookStatus.Borrowed;
@@ -55,7 +59,11 @@ public class Book : BaseEntity
 
         if (Status == BookStatus.Available)
         {
-            throw new BookAlreadyAvailableException(Code);
+            throw new BookStateException(
+                        Code,
+                        Status,
+                        "Return",
+                        $"Book with code '{Code}' cannot be returned because it is already available.");
         }
 
         Status = BookStatus.Available;
@@ -78,6 +86,10 @@ public class Book : BaseEntity
     private void EnsureNotDeleted()
     {
         if (IsDeleted)
-            throw new BookDeletedException(Code);
+            throw new BookStateException(
+                        Code,
+                        Status,
+                        "Modify",
+                        $"Book with code '{Code}' is deleted and cannot be modified.");
     }
 }

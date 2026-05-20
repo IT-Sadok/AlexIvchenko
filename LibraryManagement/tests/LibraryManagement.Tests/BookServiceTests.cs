@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using LibraryManagement.Application.Abstractions;
-using LibraryManagement.Application.DTOs;
+using LibraryManagement.Application.Models;
 using LibraryManagement.Application.Services;
 using LibraryManagement.Application.Validators;
 using LibraryManagement.Domain.Entities;
@@ -50,11 +50,12 @@ public class BookServiceTests
         var result = await _bookService.AddAsync(request);
 
         // Assert
-        result.Title.Should().Be(request.Title);
-        result.Author.Should().Be(request.Author);
-        result.Year.Should().Be(request.Year);
-        result.Code.Should().Be(request.Code);
-        result.Status.Should().Be(BookStatus.Available);
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Title.Should().Be(request.Title);
+        result.Value!.Author.Should().Be(request.Author);
+        result.Value!.Year.Should().Be(request.Year);
+        result.Value!.Code.Should().Be(request.Code);
+        result.Value!.Status.Should().Be(BookStatus.Available);
 
         _bookRepositoryMock.Verify(
             repository => repository.AddAsync(It.Is<Book>(book =>
@@ -85,7 +86,10 @@ public class BookServiceTests
         Func<Task> action = () => _bookService.AddAsync(request);
 
         // Assert
-        await action.Should().ThrowAsync<ArgumentException>();
+        var result = await _bookService.AddAsync(request);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("unique");
 
         _bookRepositoryMock.Verify(
             repository => repository.AddAsync(It.IsAny<Book>()),
@@ -115,9 +119,11 @@ public class BookServiceTests
         var result = await _bookService.GetAvailableAsync();
 
         // Assert
-        result.Should().HaveCount(1);
-        result.Single().Code.Should().Be("BK-001");
-        result.Single().Status.Should().Be(BookStatus.Available);
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Should().HaveCount(1);
+        result.Value!.Single().Code.Should().Be("BK-001");
+        result.Value!.Single().Status.Should().Be(BookStatus.Available);
     }
 
     [Fact]
@@ -138,8 +144,10 @@ public class BookServiceTests
         var result = await _bookService.SearchAsync("clean");
 
         // Assert
-        result.Should().HaveCount(1);
-        result.Single().Title.Should().Be("Clean Code");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Should().HaveCount(1);
+        result.Value!.Single().Title.Should().Be("Clean Code");
     }
 
     [Fact]
@@ -160,8 +168,10 @@ public class BookServiceTests
         var result = await _bookService.SearchAsync("fowler");
 
         // Assert
-        result.Should().HaveCount(1);
-        result.Single().Author.Should().Be("Martin Fowler");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Should().HaveCount(1);
+        result.Value!.Single().Author.Should().Be("Martin Fowler");
     }
 
     [Fact]

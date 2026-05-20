@@ -32,7 +32,7 @@ public class BookTests
         Action action = () => book.Borrow();
 
         // Assert
-        action.Should().Throw<BookAlreadyBorrowedException>();
+        action.Should().Throw<BookStateException>();
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class BookTests
         Action action = () => book.Return();
 
         // Assert
-        action.Should().Throw<BookAlreadyAvailableException>();
+        action.Should().Throw<BookStateException>();
     }
 
     [Fact]

@@ -1,10 +1,12 @@
 ﻿using LibraryManagement.Application.Abstractions;
-using LibraryManagement.Application.DTOs;
+using LibraryManagement.Application.Common;
+using LibraryManagement.Application.Models;
 using LibraryManagement.Application.Validators;
 using LibraryManagement.Domain.Entities;
 using LibraryManagement.Domain.Enums;
 using LibraryManagement.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace LibraryManagement.Application.Services;
 
@@ -23,102 +25,200 @@ public class BookService : IBookService
         _bookValidator = bookValidator;
         _logger = logger;
     }
-    public async Task<BookDto> AddAsync(CreateBookRequest request)
+    public async Task<Result<BookModel>> AddAsync(CreateBookRequest request)
     {
-        await _bookValidator.ValidateCreateAsync(request);
+        try
+        {
+            await _bookValidator.ValidateCreateAsync(request);
 
-        var book = new Book(
-            request.Title,
-            request.Author,
-            request.Year,
-            request.Code);
+            var book = new Book(
+                request.Title,
+                request.Author,
+                request.Year,
+                request.Code);
 
-        await _bookRepository.AddAsync(book);
+            await _bookRepository.AddAsync(book);
 
-        _logger.LogInformation("Book added. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
+            _logger.LogInformation("Book added. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
 
-        return MapToDto(book);
+            return Result<BookModel>.Success(MapToModel(book));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to add book. Error: {Error}", ex.Message);
+            return Result<BookModel>.Failure(ex.Message);
+        }
     }
 
-    public async Task BorrowAsync(string code)
+    public async Task<Result<BookModel>> UpdateAsync(string code, UpdateBookRequest request)
     {
-        _bookValidator.ValidateCode(code);
+        try
+        {
+            _bookValidator.ValidateCode(code);
+            _bookValidator.ValidateUpdate(request);
 
-        var book = await GetBookOrThrowAsync(code);
+            var book = await GetBookOrThrowAsync(code);
 
-        book.Borrow();
+            book.UpdateDetails(
+                request.Title,
+                request.Author,
+                request.Year);
 
-        await _bookRepository.UpdateAsync(book);
+            await _bookRepository.UpdateAsync(book);
 
-        _logger.LogInformation("Book borrowed. Code: {BookCode}", book.Code);
+            _logger.LogInformation("Book updated. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
+
+            return Result<BookModel>.Success(MapToModel(book));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to update book. Error: {Error}", ex.Message);
+            return Result<BookModel>.Failure(ex.Message);
+        }
     }
 
-    public async Task DeleteAsync(string code)
+    public async Task<Result> BorrowAsync(string code)
     {
-        _bookValidator.ValidateCode(code);
+        try
+        {
+            _bookValidator.ValidateCode(code);
 
-        var book = await GetBookOrThrowAsync(code);
+            var book = await GetBookOrThrowAsync(code);
 
-        book.MarkAsDeleted();
+            book.Borrow();
 
-        await _bookRepository.UpdateAsync(book);
+            await _bookRepository.UpdateAsync(book);
 
-        _logger.LogInformation("Book deleted. Code: {BookCode}", book.Code);
+            _logger.LogInformation("Book borrowed. Code: {BookCode}", book.Code);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to borrow book. Error: {Error}", ex.Message);
+            return Result.Failure(ex.Message);
+        }
+
     }
 
-    public async Task<IReadOnlyCollection<BookDto>> GetAllAsync()
+    public async Task<Result> DeleteAsync(string code)
     {
-        var books = await _bookRepository.GetAllAsync();
+        try
+        {
+            _bookValidator.ValidateCode(code);
 
-        return books
-            .Where(book => !book.IsDeleted)
-            .OrderBy(book => book.Title)
-            .Select(MapToDto)
-            .ToList();
+            var book = await GetBookOrThrowAsync(code);
+
+            book.MarkAsDeleted();
+
+            await _bookRepository.UpdateAsync(book);
+
+            _logger.LogInformation("Book deleted. Code: {BookCode}", book.Code);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to delete book. Error: {Error}", ex.Message);
+            return Result.Failure(ex.Message);
+        }
+
     }
 
-    public async Task<IReadOnlyCollection<BookDto>> GetAvailableAsync()
+    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAllAsync()
     {
-        var books = await _bookRepository.GetAllAsync();
+        try
+        {
+            var books = await _bookRepository.GetAllAsync();
 
-        return books
-            .Where(book => !book.IsDeleted)
-            .Where(book => book.Status == BookStatus.Available)
-            .OrderBy(book => book.Title)
-            .Select(MapToDto)
-            .ToList();
+            var result = books
+                .Where(book => !book.IsDeleted)
+                .OrderBy(book => book.Title)
+                .Select(MapToModel)
+                .ToList();
+
+            return Result<IReadOnlyCollection<BookModel>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all books.");
+            return Result<IReadOnlyCollection<BookModel>>.Failure("Failed to get all books.");
+        }
     }
 
-    public async Task ReturnAsync(string code)
+    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAvailableAsync()
     {
-        _bookValidator.ValidateCode(code);
+        try
+        {
+            var books = await _bookRepository.GetAllAsync();
 
-        var book = await GetBookOrThrowAsync(code);
+            var result = books
+                .Where(book => !book.IsDeleted)
+                .Where(book => book.Status == BookStatus.Available)
+                .OrderBy(book => book.Title)
+                .Select(MapToModel)
+                .ToList();
 
-        book.Return();
-
-        await _bookRepository.UpdateAsync(book);
-
-        _logger.LogInformation("Book returned. Code: {BookCode}", book.Code);
+            return Result<IReadOnlyCollection<BookModel>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get available books.");
+            return Result<IReadOnlyCollection<BookModel>>.Failure("Failed to get available books.");
+        }
     }
 
-    public async Task<IReadOnlyCollection<BookDto>> SearchAsync(string searchTerm)
+    public async Task<Result> ReturnAsync(string code)
     {
-        _bookValidator.ValidateSearchTerm(searchTerm);
+        try
+        {
+            _bookValidator.ValidateCode(code);
 
-        string normalizedSearchTerm = searchTerm.Trim();
+            var book = await GetBookOrThrowAsync(code);
 
-        var books = await _bookRepository.GetAllAsync();
+            book.Return();
 
-        return books
-            .Where(book => !book.IsDeleted)
-            .Where(book =>
-                book.Title.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                book.Author.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                book.Code.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(book => book.Title)
-            .Select(MapToDto)
-            .ToList();
+            await _bookRepository.UpdateAsync(book);
+
+            _logger.LogInformation("Book returned. Code: {BookCode}", book.Code);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to return book. Error: {Error}", ex.Message);
+            return Result.Failure(ex.Message);
+        }
+    }
+
+    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(string searchTerm)
+    {
+        try
+        {
+            _bookValidator.ValidateSearchTerm(searchTerm);
+
+            string normalizedSearchTerm = searchTerm.Trim();
+
+            var books = await _bookRepository.GetAllAsync();
+
+            var result = books
+                .Where(book => !book.IsDeleted)
+                .Where(book =>
+                    book.Title.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Author.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Code.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(book => book.Title)
+                .Select(MapToModel)
+                .ToList();
+
+            return Result<IReadOnlyCollection<BookModel>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Failed to search books. Error: {Error}", ex.Message);
+            return Result<IReadOnlyCollection<BookModel>>.Failure(ex.Message);
+        }
+        
     }
 
     private async Task<Book> GetBookOrThrowAsync(string code)
@@ -135,9 +235,9 @@ public class BookService : IBookService
         return book;
     }
 
-    private static BookDto MapToDto(Book book)
+    private static BookModel MapToModel(Book book)
     {
-        return new BookDto
+        return new BookModel
         {
             Id = book.Id,
             Title = book.Title,
@@ -146,24 +246,5 @@ public class BookService : IBookService
             Code = book.Code,
             Status = book.Status
         };
-    }
-
-    public async Task<BookDto> UpdateAsync(string code, UpdateBookRequest request)
-    {
-        _bookValidator.ValidateCode(code);
-        _bookValidator.ValidateUpdate(request);
-
-        var book = await GetBookOrThrowAsync(code);
-
-        book.UpdateDetails(
-            request.Title,
-            request.Author,
-            request.Year);
-
-        await _bookRepository.UpdateAsync(book);
-
-        _logger.LogInformation("Book updated. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
-
-        return MapToDto(book);
     }
 }

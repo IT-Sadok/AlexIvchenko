@@ -1,4 +1,4 @@
-﻿using LibraryManagement.Application.DTOs;
+﻿using LibraryManagement.Application.Models;
 
 namespace LibraryManagement.Console.Output;
 
@@ -19,7 +19,7 @@ public class ConsoleWriter
         WriteWithColor(message, ConsoleColor.Cyan);
     }
 
-    public void WriteBooks(IEnumerable<BookDto> books)
+    public void WriteBooks(IEnumerable<BookModel> books)
     {
         var bookList = books.ToList();
 

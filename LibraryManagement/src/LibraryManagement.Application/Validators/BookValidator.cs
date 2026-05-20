@@ -1,5 +1,5 @@
 ﻿using LibraryManagement.Application.Abstractions;
-using LibraryManagement.Application.DTOs;
+using LibraryManagement.Application.Models;
 using LibraryManagement.Domain.Common;
 
 namespace LibraryManagement.Application.Validators;
