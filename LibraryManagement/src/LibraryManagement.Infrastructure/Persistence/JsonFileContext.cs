@@ -10,6 +10,7 @@ public class JsonFileContext
 {
     private readonly string _filePath;
     private readonly ILogger<JsonFileContext> _logger;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     private List<Book>? _cachedBooks;
 
@@ -27,41 +28,51 @@ public class JsonFileContext
         EnsureFileExists();
     }
 
-    public async Task<List<Book>> ReadBooksAsync()
+    public async Task<IReadOnlyCollection<Book>> ReadBooksSnapshotAsync()
     {
-        if (_cachedBooks is not null)
-        {
-            _logger.LogDebug("Books loaded from cache.");
-            return _cachedBooks;
-        }
+        await _semaphore.WaitAsync();
 
-        _cachedBooks = await ReadBooksFromFileAsync();
-
-        return _cachedBooks;
-    }
-
-    public async Task WriteBooksAsync(List<Book> books)
-    {
         try
         {
-            EnsureFileExists();
+            if (_cachedBooks is null)
+            {
+                _logger.LogInformation(
+                    "Books loaded from JSON file. FilePath: {FilePath}",
+                    _filePath);
 
-            string json = JsonSerializer.Serialize(books, _jsonOptions);
+                _cachedBooks = await ReadBooksFromFileAsync();
+            }
+            else
+            {
+                _logger.LogDebug("Books loaded from cache.");
+            }
 
-            await File.WriteAllTextAsync(_filePath, json);
-
-            _cachedBooks = books;
+            return CloneBooks(_cachedBooks);
         }
-        catch (UnauthorizedAccessException exception)
+        finally
         {
-            _logger.LogError(exception, "Access denied while writing storage file. FilePath: {FilePath}", _filePath);
-            throw;
+            _semaphore.Release();
         }
-        catch (IOException exception)
+    }
+
+    public async Task<TResult> UpdateBooksAsync<TResult>(Func<List<Book>, TResult> updateAction)
+    {
+        await _semaphore.WaitAsync();
+
+        try
         {
-            _logger.LogError(exception, "I/O error while writing storage file. FilePath: {FilePath}", _filePath);
-            throw;
+            if (_cachedBooks is null)
+            {
+                _cachedBooks = await ReadBooksFromFileAsync();
+            }
+
+            TResult result = updateAction(_cachedBooks);
+            await WriteBooksToFileAsync(_cachedBooks);
+            _logger.LogDebug("Books were updated.");
+
+            return result;
         }
+        finally { _semaphore.Release(); }
     }
 
     private void EnsureFileExists()
@@ -119,5 +130,43 @@ public class JsonFileContext
             _logger.LogError(exception, "I/O error while reading storage file. FilePath: {FilePath}", _filePath);
             throw;
         }
+    }
+
+    private async Task WriteBooksToFileAsync(List<Book> books)
+    {
+        try
+        {
+            EnsureFileExists();
+
+            string json = JsonSerializer.Serialize(books, _jsonOptions);
+
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            _logger.LogError(
+                exception,
+                "Access denied while writing storage file. FilePath: {FilePath}",
+                _filePath);
+
+            throw;
+        }
+        catch (IOException exception)
+        {
+            _logger.LogError(
+                exception,
+                "I/O error while writing storage file. FilePath: {FilePath}",
+                _filePath);
+
+            throw;
+        }
+    }
+
+    private List<Book> CloneBooks(List<Book> books)
+    {
+        string json = JsonSerializer.Serialize(books, _jsonOptions);
+
+        return JsonSerializer.Deserialize<List<Book>>(json, _jsonOptions)
+               ?? new List<Book>();
     }
 }

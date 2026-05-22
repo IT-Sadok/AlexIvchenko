@@ -1,5 +1,6 @@
 ﻿using LibraryManagement.Application.Abstractions;
 using LibraryManagement.Domain.Entities;
+using LibraryManagement.Domain.Exceptions;
 
 namespace LibraryManagement.Infrastructure.Persistence;
 
@@ -14,7 +15,7 @@ public class JsonBookRepository : IBookRepository
 
     public async Task<IReadOnlyCollection<Book>> GetAllAsync()
     {
-        var books = await _jsonFileContext.ReadBooksAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
 
         return books
             .Where(book => !book.IsDeleted)
@@ -23,7 +24,7 @@ public class JsonBookRepository : IBookRepository
 
     public async Task<Book?> GetByCodeAsync(string code)
     {
-        var books = await _jsonFileContext.ReadBooksAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
 
         return books.FirstOrDefault(book =>
             !book.IsDeleted &&
@@ -32,36 +33,47 @@ public class JsonBookRepository : IBookRepository
 
     public async Task AddAsync(Book book)
     {
-        var books = await _jsonFileContext.ReadBooksAsync();
+        await _jsonFileContext.UpdateBooksAsync(books =>
+        {
+            bool codeExists = books.Any(existingBook =>
+                !existingBook.IsDeleted &&
+                existingBook.Code.Equals(book.Code, StringComparison.OrdinalIgnoreCase));
 
-        books.Add(book);
+            if (codeExists)
+            {
+                throw new ArgumentException("Book code must be unique.", nameof(book.Code));
+            }
 
-        await _jsonFileContext.WriteBooksAsync(books);
+            books.Add(book);
+
+            return true;
+        });
     }
 
-    public async Task UpdateAsync(Book book)
+    public async Task<Book> UpdateByCodeAsync(string code, Action<Book> updateAction)
     {
-        var books = await _jsonFileContext.ReadBooksAsync();
-
-        int index = books.FindIndex(existingBook =>
-            existingBook.Id == book.Id ||
-            existingBook.Code.Equals(book.Code, StringComparison.OrdinalIgnoreCase));
-
-        if (index < 0)
+        return await _jsonFileContext.UpdateBooksAsync(books =>
         {
-            books.Add(book);
-        }
-        else
-        {
-            books[index] = book;
-        }
+            string normalizedCode = code.Trim();
 
-        await _jsonFileContext.WriteBooksAsync(books);
+            var book = books.FirstOrDefault(existingBook =>
+                !existingBook.IsDeleted &&
+                existingBook.Code.Equals(normalizedCode, StringComparison.OrdinalIgnoreCase));
+
+            if (book is null)
+            {
+                throw new BookNotFoundException(normalizedCode);
+            }
+
+            updateAction(book);
+
+            return book;
+        });
     }
 
     public async Task<bool> ExistsByCodeAsync(string code)
     {
-        var books = await _jsonFileContext.ReadBooksAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
 
         return books.Any(book =>
             !book.IsDeleted &&

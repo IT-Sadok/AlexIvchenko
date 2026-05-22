@@ -57,14 +57,11 @@ public class BookService : IBookService
             _bookValidator.ValidateCode(code);
             _bookValidator.ValidateUpdate(request);
 
-            var book = await GetBookOrThrowAsync(code);
-
-            book.UpdateDetails(
-                request.Title,
-                request.Author,
-                request.Year);
-
-            await _bookRepository.UpdateAsync(book);
+            var book = await _bookRepository.UpdateByCodeAsync(code, 
+                            book => book.UpdateDetails(
+                                request.Title,
+                                request.Author,
+                                request.Year));
 
             _logger.LogInformation("Book updated. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
 
@@ -83,13 +80,9 @@ public class BookService : IBookService
         {
             _bookValidator.ValidateCode(code);
 
-            var book = await GetBookOrThrowAsync(code);
+            await _bookRepository.UpdateByCodeAsync(code, book => book.Borrow());
 
-            book.Borrow();
-
-            await _bookRepository.UpdateAsync(book);
-
-            _logger.LogInformation("Book borrowed. Code: {BookCode}", book.Code);
+            _logger.LogInformation("Book borrowed. Code: {BookCode}", code);
 
             return Result.Success();
         }
@@ -107,13 +100,9 @@ public class BookService : IBookService
         {
             _bookValidator.ValidateCode(code);
 
-            var book = await GetBookOrThrowAsync(code);
+            await _bookRepository.UpdateByCodeAsync(code, book => book.MarkAsDeleted());
 
-            book.MarkAsDeleted();
-
-            await _bookRepository.UpdateAsync(book);
-
-            _logger.LogInformation("Book deleted. Code: {BookCode}", book.Code);
+            _logger.LogInformation("Book deleted. Code: {BookCode}", code);
 
             return Result.Success();
         }
@@ -174,13 +163,9 @@ public class BookService : IBookService
         {
             _bookValidator.ValidateCode(code);
 
-            var book = await GetBookOrThrowAsync(code);
+            await _bookRepository.UpdateByCodeAsync(code, book => book.Return());
 
-            book.Return();
-
-            await _bookRepository.UpdateAsync(book);
-
-            _logger.LogInformation("Book returned. Code: {BookCode}", book.Code);
+            _logger.LogInformation("Book returned. Code: {BookCode}", code);
 
             return Result.Success();
         }
@@ -219,20 +204,6 @@ public class BookService : IBookService
             return Result<IReadOnlyCollection<BookModel>>.Failure(ex.Message);
         }
         
-    }
-
-    private async Task<Book> GetBookOrThrowAsync(string code)
-    {
-        string normalizedCode = code.Trim();
-
-        var book = await _bookRepository.GetByCodeAsync(normalizedCode);
-
-        if (book is null || book.IsDeleted)
-        {
-            throw new BookNotFoundException(normalizedCode);
-        }
-
-        return book;
     }
 
     private static BookModel MapToModel(Book book)
