@@ -1,0 +1,50 @@
+[
+  {
+    "Title": "AlexWeb",
+    "Author": "Alex",
+    "Year": 1991,
+    "Code": "AI-91",
+    "Status": 1,
+    "Id": "62670097-bbe1-431e-8161-dbee0c0f1832",
+    "CreatedAt": "2026-05-22T10:07:30.8336123Z",
+    "UpdatedAt": null,
+    "IsDeleted": false,
+    "DeletedAt": null
+  },
+  {
+    "Title": "AlexWeb1",
+    "Author": "Alex1",
+    "Year": 1999,
+    "Code": "AI-99",
+    "Status": 1,
+    "Id": "c817beb2-9f9f-4232-83f7-a2512c85601a",
+    "CreatedAt": "2026-05-22T10:09:34.3800058Z",
+    "UpdatedAt": "2026-05-22T10:19:33.1382288Z",
+    "IsDeleted": true,
+    "DeletedAt": "2026-05-22T10:19:33.1382276Z"
+  },
+  {
+    "Title": "AlexWeb2",
+    "Author": "Alex2",
+    "Year": 1992,
+    "Code": "AI-92",
+    "Status": 1,
+    "Id": "1dffd4b2-fb52-4b33-821d-e5d8be981bba",
+    "CreatedAt": "2026-05-22T10:12:16.8868293Z",
+    "UpdatedAt": "2026-05-22T10:19:28.6181255Z",
+    "IsDeleted": true,
+    "DeletedAt": "2026-05-22T10:19:28.6181244Z"
+  },
+  {
+    "Title": "Bla",
+    "Author": "Bla",
+    "Year": 1996,
+    "Code": "test-01",
+    "Status": 1,
+    "Id": "1171de6b-da23-4d2b-af09-508d5e4c7d95",
+    "CreatedAt": "2026-05-22T10:16:24.7085441Z",
+    "UpdatedAt": "2026-05-22T10:18:50.5205073Z",
+    "IsDeleted": true,
+    "DeletedAt": "2026-05-22T10:18:50.5205034Z"
+  }
+]
