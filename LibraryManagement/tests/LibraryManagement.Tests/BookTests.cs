@@ -79,4 +79,19 @@ public class BookTests
         book.Code.Should().Be("BK-001");
         book.UpdatedAt.Should().NotBeNull();
     }
+
+    [Fact]
+    public void MarkAsDeleted_WhenBookIsNotDeleted_ShouldSoftDeleteBook()
+    {
+        // Arrange
+        var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        // Act
+        book.MarkAsDeleted();
+
+        // Assert
+        book.IsDeleted.Should().BeTrue();
+        book.DeletedAt.Should().NotBeNull();
+        book.UpdatedAt.Should().NotBeNull();
+    }
 }

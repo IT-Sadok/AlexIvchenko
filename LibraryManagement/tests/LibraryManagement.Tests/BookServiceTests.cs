@@ -67,7 +67,7 @@ public class BookServiceTests
     }
 
     [Fact]
-    public async Task AddAsync_WhenCodeAlreadyExists_ShouldThrowException()
+    public async Task AddAsync_WhenCodeAlreadyExists_ShouldReturnFailure()
     {
         // Arrange
         var request = new CreateBookRequest
@@ -83,11 +83,9 @@ public class BookServiceTests
             .ReturnsAsync(true);
 
         // Act
-        Func<Task> action = () => _bookService.AddAsync(request);
-
-        // Assert
         var result = await _bookService.AddAsync(request);
 
+        // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("unique");
 
@@ -181,8 +179,12 @@ public class BookServiceTests
         var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
 
         _bookRepositoryMock
-            .Setup(repository => repository.GetByCodeAsync("BK-001"))
-            .ReturnsAsync(book);
+            .Setup(repository => repository.UpdateByCodeAsync("BK-001", It.IsAny<Action<Book>>()))
+            .ReturnsAsync((string code, Action<Book> updateAction) =>
+            {
+                updateAction(book);
+                return book;
+            });
 
         // Act
         await _bookService.BorrowAsync("BK-001");
@@ -191,7 +193,9 @@ public class BookServiceTests
         book.Status.Should().Be(BookStatus.Borrowed);
 
         _bookRepositoryMock.Verify(
-            repository => repository.UpdateAsync(book),
+            repository => repository.UpdateByCodeAsync(
+                "BK-001",
+                It.IsAny<Action<Book>>()),
             Times.Once);
     }
 
@@ -203,17 +207,24 @@ public class BookServiceTests
         book.Borrow();
 
         _bookRepositoryMock
-            .Setup(repository => repository.GetByCodeAsync("BK-001"))
-            .ReturnsAsync(book);
+            .Setup(repository => repository.UpdateByCodeAsync("BK-001", It.IsAny<Action<Book>>()))
+            .ReturnsAsync((string code, Action<Book> updateAction) =>
+            {
+                updateAction(book);
+                return book;
+            });
 
         // Act
-        await _bookService.ReturnAsync("BK-001");
+        var result = await _bookService.ReturnAsync("BK-001");
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
         book.Status.Should().Be(BookStatus.Available);
 
         _bookRepositoryMock.Verify(
-            repository => repository.UpdateAsync(book),
+            repository => repository.UpdateByCodeAsync(
+                "BK-001",
+                It.IsAny<Action<Book>>()),
             Times.Once);
     }
 
@@ -224,18 +235,25 @@ public class BookServiceTests
         var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
 
         _bookRepositoryMock
-            .Setup(repository => repository.GetByCodeAsync("BK-001"))
-            .ReturnsAsync(book);
+            .Setup(repository => repository.UpdateByCodeAsync("BK-001", It.IsAny<Action<Book>>()))
+            .ReturnsAsync((string code, Action<Book> updateAction) =>
+            {
+                updateAction(book);
+                return book;
+            });
 
         // Act
-        await _bookService.DeleteAsync("BK-001");
+        var result = await _bookService.DeleteAsync("BK-001");
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
         book.IsDeleted.Should().BeTrue();
         book.DeletedAt.Should().NotBeNull();
 
         _bookRepositoryMock.Verify(
-            repository => repository.UpdateAsync(book),
+            repository => repository.UpdateByCodeAsync(
+                "BK-001",
+                It.IsAny<Action<Book>>()),
             Times.Once);
     }
 }

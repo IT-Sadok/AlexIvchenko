@@ -2,6 +2,8 @@
 using LibraryManagement.Domain.Entities;
 using LibraryManagement.Infrastructure.Configuration;
 using LibraryManagement.Infrastructure.Persistence;
+using LibraryManagement.Domain.Enums;
+using LibraryManagement.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -90,6 +92,81 @@ public class JsonBookRepositoryTests : IDisposable
 
         // Assert
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdateByCodeAsync_WhenBookExists_ShouldUpdateBook()
+    {
+        // Arrange
+        var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        await _repository.AddAsync(book);
+
+        // Act
+        var updatedBook = await _repository.UpdateByCodeAsync(
+            "BK-001",
+            book => book.UpdateDetails("Updated Title", "Updated Author", 2020));
+
+        // Assert
+        updatedBook.Title.Should().Be("Updated Title");
+        updatedBook.Author.Should().Be("Updated Author");
+        updatedBook.Year.Should().Be(2020);
+
+        var books = await _repository.GetAllAsync();
+
+        books.Should().HaveCount(1);
+        books.Single().Title.Should().Be("Updated Title");
+    }
+
+    [Fact]
+    public async Task UpdateByCodeAsync_WhenBookIsSoftDeleted_ShouldNotReturnBookFromGetAll()
+    {
+        // Arrange
+        var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        await _repository.AddAsync(book);
+
+        // Act
+        await _repository.UpdateByCodeAsync(
+            "BK-001",
+            book => book.MarkAsDeleted());
+
+        // Assert
+        var books = await _repository.GetAllAsync();
+
+        books.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdateByCodeAsync_WhenBorrowingBook_ShouldChangeStatus()
+    {
+        // Arrange
+        var book = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        await _repository.AddAsync(book);
+
+        // Act
+        await _repository.UpdateByCodeAsync(
+            "BK-001",
+            book => book.Borrow());
+
+        // Assert
+        var updatedBook = await _repository.GetByCodeAsync("BK-001");
+
+        updatedBook.Should().NotBeNull();
+        updatedBook!.Status.Should().Be(BookStatus.Borrowed);
+    }
+
+    [Fact]
+    public async Task UpdateByCodeAsync_WhenBookDoesNotExist_ShouldThrowBookNotFoundException()
+    {
+        // Act
+        Func<Task> action = () => _repository.UpdateByCodeAsync(
+            "BK-404",
+            book => book.Borrow());
+
+        // Assert
+        await action.Should().ThrowAsync<BookNotFoundException>();
     }
 
     public void Dispose()
