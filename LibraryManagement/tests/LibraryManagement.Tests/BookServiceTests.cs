@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using LibraryManagement.Application.Abstractions;
 using LibraryManagement.Application.Models;
 using LibraryManagement.Application.Services;
@@ -125,6 +125,71 @@ public class BookServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_WhenStatusIsAvailable_ShouldReturnOnlyAvailableBooks()
+    {
+        // Arrange
+        var availableBook = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        var borrowedBook = new Book("Refactoring", "Martin Fowler", 1999, "BK-002");
+        borrowedBook.Borrow();
+
+        var books = new List<Book>
+        {
+            availableBook,
+            borrowedBook
+        };
+
+        _bookRepositoryMock
+            .Setup(repository => repository.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(books);
+
+        // Act
+        var result = await _bookService.GetAsync(new BookQueryRequest { Status = "available" });
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Should().HaveCount(1);
+        result.Value!.Single().Code.Should().Be("BK-001");
+        result.Value!.Single().Status.Should().Be(BookStatus.Available);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenSearchAndAvailableStatusProvided_ShouldApplyBothFilters()
+    {
+        // Arrange
+        var matchingBook = new Book("Clean Code", "Robert Martin", 2008, "BK-001");
+
+        var borrowedBook = new Book("Clean Architecture", "Robert Martin", 2017, "BK-002");
+        borrowedBook.Borrow();
+
+        var books = new List<Book>
+        {
+            matchingBook,
+            borrowedBook,
+            new("Refactoring", "Martin Fowler", 1999, "BK-003")
+        };
+
+        _bookRepositoryMock
+            .Setup(repository => repository.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(books);
+
+        // Act
+        var result = await _bookService.GetAsync(
+            new BookQueryRequest
+            {
+                SearchTerm = "clean",
+                Status = "available"
+            });
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
+        result.Value!.Should().HaveCount(1);
+        result.Value!.Single().Code.Should().Be("BK-001");
+    }
+
+    [Fact]
     public async Task SearchAsync_ShouldFindBooksByTitle()
     {
         // Arrange
@@ -139,7 +204,7 @@ public class BookServiceTests
             .ReturnsAsync(books);
 
         // Act
-        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = "clean" });
+        var result = await _bookService.SearchAsync(new BookQueryRequest { SearchTerm = "clean" });
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -163,7 +228,7 @@ public class BookServiceTests
             .ReturnsAsync(books);
 
         // Act
-        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = "fowler" });
+        var result = await _bookService.SearchAsync(new BookQueryRequest { SearchTerm = "fowler" });
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -261,3 +326,4 @@ public class BookServiceTests
             Times.Once);
     }
 }
+

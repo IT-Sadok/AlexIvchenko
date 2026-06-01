@@ -1,4 +1,4 @@
-﻿using LibraryManagement.Application.Abstractions;
+using LibraryManagement.Application.Abstractions;
 using LibraryManagement.Application.Common;
 using LibraryManagement.Application.Models;
 using LibraryManagement.Application.Services;
@@ -36,7 +36,7 @@ public class BooksController : Controller
     [HttpGet("search")]
     public async Task<ActionResult<IReadOnlyCollection<BookModel>>> SearchAsync([FromQuery] string term)
     {
-        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = term });
+        var result = await _bookService.SearchAsync(new BookQueryRequest { SearchTerm = term });
 
         return ToActionResult(result);
     }
@@ -111,3 +111,4 @@ public class BooksController : Controller
         return Ok(result.Value);
     }
 }
+
