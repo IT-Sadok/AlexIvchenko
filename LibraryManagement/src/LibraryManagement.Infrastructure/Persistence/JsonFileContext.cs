@@ -28,9 +28,9 @@ public class JsonFileContext
         EnsureFileExists();
     }
 
-    public async Task<IReadOnlyCollection<Book>> ReadBooksSnapshotAsync()
+    public async Task<IReadOnlyCollection<Book>> ReadBooksSnapshotAsync(CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync(cancellationToken);
 
         try
         {
@@ -40,7 +40,7 @@ public class JsonFileContext
                     "Books loaded from JSON file. FilePath: {FilePath}",
                     _filePath);
 
-                _cachedBooks = await ReadBooksFromFileAsync();
+                _cachedBooks = await ReadBooksFromFileAsync(cancellationToken);
             }
             else
             {
@@ -55,19 +55,20 @@ public class JsonFileContext
         }
     }
 
-    public async Task<TResult> UpdateBooksAsync<TResult>(Func<List<Book>, TResult> updateAction)
+    public async Task<TResult> UpdateBooksAsync<TResult>(Func<List<Book>, TResult> updateAction
+        , CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync();
+        await _semaphore.WaitAsync(cancellationToken);
 
         try
         {
             if (_cachedBooks is null)
             {
-                _cachedBooks = await ReadBooksFromFileAsync();
+                _cachedBooks = await ReadBooksFromFileAsync(cancellationToken);
             }
 
             TResult result = updateAction(_cachedBooks);
-            await WriteBooksToFileAsync(_cachedBooks);
+            await WriteBooksToFileAsync(_cachedBooks, cancellationToken);
             _logger.LogDebug("Books were updated.");
 
             return result;
@@ -96,13 +97,13 @@ public class JsonFileContext
         _cachedBooks = null;
     }
 
-    private async Task<List<Book>> ReadBooksFromFileAsync()
+    private async Task<List<Book>> ReadBooksFromFileAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             EnsureFileExists();
 
-            string json = await File.ReadAllTextAsync(_filePath);
+            string json = await File.ReadAllTextAsync(_filePath, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -132,7 +133,7 @@ public class JsonFileContext
         }
     }
 
-    private async Task WriteBooksToFileAsync(List<Book> books)
+    private async Task WriteBooksToFileAsync(List<Book> books, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -140,7 +141,7 @@ public class JsonFileContext
 
             string json = JsonSerializer.Serialize(books, _jsonOptions);
 
-            await File.WriteAllTextAsync(_filePath, json);
+            await File.WriteAllTextAsync(_filePath, json, cancellationToken);
         }
         catch (UnauthorizedAccessException exception)
         {

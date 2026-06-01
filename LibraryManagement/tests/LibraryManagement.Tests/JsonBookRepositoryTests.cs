@@ -61,7 +61,7 @@ public class JsonBookRepositoryTests : IDisposable
         await _repository.AddAsync(book);
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _repository.GetAllAsync(It.IsAny<CancellationToken>());
 
         // Assert
         result.Should().HaveCount(1);
@@ -88,7 +88,7 @@ public class JsonBookRepositoryTests : IDisposable
         await File.WriteAllTextAsync(_testFilePath, string.Empty);
 
         // Act
-        var result = await _repository.GetAllAsync();
+        var result = await _repository.GetAllAsync(It.IsAny<CancellationToken>());
 
         // Assert
         result.Should().BeEmpty();
@@ -112,7 +112,7 @@ public class JsonBookRepositoryTests : IDisposable
         updatedBook.Author.Should().Be("Updated Author");
         updatedBook.Year.Should().Be(2020);
 
-        var books = await _repository.GetAllAsync();
+        var books = await _repository.GetAllAsync(It.IsAny<CancellationToken>());
 
         books.Should().HaveCount(1);
         books.Single().Title.Should().Be("Updated Title");
@@ -132,7 +132,7 @@ public class JsonBookRepositoryTests : IDisposable
             book => book.MarkAsDeleted());
 
         // Assert
-        var books = await _repository.GetAllAsync();
+        var books = await _repository.GetAllAsync(It.IsAny<CancellationToken>());
 
         books.Should().BeEmpty();
     }

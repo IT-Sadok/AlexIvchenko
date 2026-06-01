@@ -4,9 +4,7 @@ using LibraryManagement.Application.Models;
 using LibraryManagement.Application.Validators;
 using LibraryManagement.Domain.Entities;
 using LibraryManagement.Domain.Enums;
-using LibraryManagement.Domain.Exceptions;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace LibraryManagement.Application.Services;
 
@@ -25,7 +23,7 @@ public class BookService : IBookService
         _bookValidator = bookValidator;
         _logger = logger;
     }
-    public async Task<Result<BookModel>> AddAsync(CreateBookRequest request)
+    public async Task<Result<BookModel>> AddAsync(CreateBookRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -37,7 +35,7 @@ public class BookService : IBookService
                 request.Year,
                 request.Code);
 
-            await _bookRepository.AddAsync(book);
+            await _bookRepository.AddAsync(book, cancellationToken);
 
             _logger.LogInformation("Book added. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
 
@@ -50,7 +48,7 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result<BookModel>> UpdateAsync(string code, UpdateBookRequest request)
+    public async Task<Result<BookModel>> UpdateAsync(string code, UpdateBookRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -61,7 +59,8 @@ public class BookService : IBookService
                             book => book.UpdateDetails(
                                 request.Title,
                                 request.Author,
-                                request.Year));
+                                request.Year),
+                            cancellationToken);
 
             _logger.LogInformation("Book updated. Code: {BookCode}, Title: {BookTitle}", book.Code, book.Title);
 
@@ -74,13 +73,13 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result> BorrowAsync(string code)
+    public async Task<Result> BorrowAsync(string code, CancellationToken cancellationToken = default)
     {
         try
         {
             _bookValidator.ValidateCode(code);
 
-            await _bookRepository.UpdateByCodeAsync(code, book => book.Borrow());
+            await _bookRepository.UpdateByCodeAsync(code, book => book.Borrow(), cancellationToken);
 
             _logger.LogInformation("Book borrowed. Code: {BookCode}", code);
 
@@ -94,13 +93,13 @@ public class BookService : IBookService
 
     }
 
-    public async Task<Result> DeleteAsync(string code)
+    public async Task<Result> DeleteAsync(string code, CancellationToken cancellationToken = default)
     {
         try
         {
             _bookValidator.ValidateCode(code);
 
-            await _bookRepository.UpdateByCodeAsync(code, book => book.MarkAsDeleted());
+            await _bookRepository.UpdateByCodeAsync(code, book => book.MarkAsDeleted(), cancellationToken);
 
             _logger.LogInformation("Book deleted. Code: {BookCode}", code);
 
@@ -114,11 +113,11 @@ public class BookService : IBookService
 
     }
 
-    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAllAsync()
+    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var books = await _bookRepository.GetAllAsync();
+            var books = await _bookRepository.GetAllAsync(cancellationToken);
 
             var result = books
                 .Where(book => !book.IsDeleted)
@@ -135,12 +134,11 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAvailableAsync()
+    public async Task<Result<IReadOnlyCollection<BookModel>>> GetAvailableAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var books = await _bookRepository.GetAllAsync();
-
+            var books = await _bookRepository.GetAllAsync(cancellationToken);
             var result = books
                 .Where(book => !book.IsDeleted)
                 .Where(book => book.Status == BookStatus.Available)
@@ -157,13 +155,13 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result> ReturnAsync(string code)
+    public async Task<Result> ReturnAsync(string code, CancellationToken cancellationToken = default)
     {
         try
         {
             _bookValidator.ValidateCode(code);
 
-            await _bookRepository.UpdateByCodeAsync(code, book => book.Return());
+            await _bookRepository.UpdateByCodeAsync(code, book => book.Return(), cancellationToken);
 
             _logger.LogInformation("Book returned. Code: {BookCode}", code);
 
@@ -176,22 +174,30 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(string searchTerm)
+    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(BookSearchRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            _bookValidator.ValidateSearchTerm(searchTerm);
+            var books = await _bookRepository.GetAllAsync(cancellationToken);
 
-            string normalizedSearchTerm = searchTerm.Trim();
+            IEnumerable<Book> filteredBooks = books.Where(book => !book.IsDeleted);
 
-            var books = await _bookRepository.GetAllAsync();
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var searchTerm = request.SearchTerm.Trim();
 
-            var result = books
-                .Where(book => !book.IsDeleted)
-                .Where(book =>
-                    book.Title.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    book.Author.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    book.Code.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase))
+                filteredBooks = filteredBooks.Where(book =>
+                    book.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Author.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (request.Status.HasValue)
+            {
+                filteredBooks = filteredBooks.Where(book => book.Status == request.Status.Value);
+            }
+
+            var result = filteredBooks
                 .OrderBy(book => book.Title)
                 .Select(MapToModel)
                 .ToList();
