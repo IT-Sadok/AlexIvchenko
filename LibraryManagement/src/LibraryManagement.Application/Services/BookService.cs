@@ -134,6 +134,13 @@ public class BookService : IBookService
         }
     }
 
+    public Task<Result<IReadOnlyCollection<BookModel>>> GetAsync(
+        BookQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return SearchAsync(request, cancellationToken);
+    }
+
     public async Task<Result<IReadOnlyCollection<BookModel>>> GetAvailableAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -174,7 +181,7 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(BookSearchRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(BookQueryRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -192,9 +199,13 @@ public class BookService : IBookService
                     book.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
             }
 
-            if (request.Status.HasValue)
+            var status = string.Equals(request.Status, "available", StringComparison.OrdinalIgnoreCase)
+                ? BookStatus.Available
+                : (BookStatus?)null;
+
+            if (status.HasValue)
             {
-                filteredBooks = filteredBooks.Where(book => book.Status == request.Status.Value);
+                filteredBooks = filteredBooks.Where(book => book.Status == status.Value);
             }
 
             var result = filteredBooks

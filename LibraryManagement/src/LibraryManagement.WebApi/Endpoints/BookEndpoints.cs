@@ -16,24 +16,13 @@ public static class BookEndpoints
                 IBookService bookService,
                 CancellationToken cancellationToken) =>
         {
-            Result<IReadOnlyCollection<BookModel>> result;
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                result = await bookService.SearchAsync(
-                    new BookSearchRequest { 
-                        SearchTerm = search, 
-                        Status = string.Equals(status, "available", StringComparison.OrdinalIgnoreCase) ? Domain.Enums.BookStatus.Available : null 
-                    }, cancellationToken);
-            }
-            else if (string.Equals(status, "available", StringComparison.OrdinalIgnoreCase))
-            {
-                result = await bookService.GetAvailableAsync(cancellationToken);
-            }
-            else
-            {
-                result = await bookService.GetAllAsync(cancellationToken);
-            }
+            var result = await bookService.GetAsync(
+                new BookQueryRequest
+                {
+                    Status = status,
+                    SearchTerm = search
+                },
+                cancellationToken);
 
             return ToHttpResult(result);
         });

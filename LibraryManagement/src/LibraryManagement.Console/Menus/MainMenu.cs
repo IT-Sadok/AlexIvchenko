@@ -1,4 +1,4 @@
-﻿using LibraryManagement.Application.Abstractions;
+using LibraryManagement.Application.Abstractions;
 using LibraryManagement.Application.Common;
 using LibraryManagement.Application.Models;
 using LibraryManagement.Console.Input;
@@ -209,7 +209,7 @@ public class MainMenu
     {
         string searchTerm = _inputReader.ReadRequiredString("Enter search term (title, author, or code): ");
 
-        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = searchTerm });
+        var result = await _bookService.SearchAsync(new BookQueryRequest { SearchTerm = searchTerm });
 
         if (TryWriteResultError(result))
         {
@@ -314,3 +314,4 @@ public class MainMenu
         return true;
     }
 }
+
