@@ -7,7 +7,7 @@
     "Status": 1,
     "Id": "62670097-bbe1-431e-8161-dbee0c0f1832",
     "CreatedAt": "2026-05-22T10:07:30.8336123Z",
-    "UpdatedAt": null,
+    "UpdatedAt": "2026-05-29T13:09:07.3526844Z",
     "IsDeleted": false,
     "DeletedAt": null
   },
@@ -46,5 +46,29 @@
     "UpdatedAt": "2026-05-22T10:18:50.5205073Z",
     "IsDeleted": true,
     "DeletedAt": "2026-05-22T10:18:50.5205034Z"
+  },
+  {
+    "Title": "AlexWeb1",
+    "Author": "Alex1",
+    "Year": 2020,
+    "Code": "AI-11",
+    "Status": 1,
+    "Id": "a3139510-d798-4aad-9174-a3aa398a3819",
+    "CreatedAt": "2026-05-28T18:57:19.9262854Z",
+    "UpdatedAt": "2026-05-29T13:09:13.0565734Z",
+    "IsDeleted": true,
+    "DeletedAt": "2026-05-29T13:09:13.0565716Z"
+  },
+  {
+    "Title": "Azure",
+    "Author": "MS",
+    "Year": 2024,
+    "Code": "AI-900",
+    "Status": 1,
+    "Id": "1c82ff01-3d14-445d-9b35-9cca1ec84252",
+    "CreatedAt": "2026-05-29T13:08:11.1798063Z",
+    "UpdatedAt": "2026-05-29T13:09:02.2676125Z",
+    "IsDeleted": false,
+    "DeletedAt": null
   }
 ]

@@ -7,6 +7,7 @@ using LibraryManagement.Infrastructure.Configuration;
 using LibraryManagement.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace LibraryManagement.Tests;
 
@@ -137,14 +138,14 @@ public class ConcurrencyTests : IDisposable
         {
             tasks.Add(Task.Run(async () =>
             {
-                await _bookService.GetAllAsync();
+                await _bookService.GetAllAsync(It.IsAny<CancellationToken>());
             }));
         }
 
         // Act
         await Task.WhenAll(tasks);
 
-        var result = await _bookService.GetAllAsync();
+        var result = await _bookService.GetAllAsync(It.IsAny<CancellationToken>());
 
         // Assert
         result.IsSuccess.Should().BeTrue();

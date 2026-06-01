@@ -2,12 +2,27 @@ using LibraryManagement.Application.Abstractions;
 using LibraryManagement.Application.Services;
 using LibraryManagement.Application.Validators;
 using LibraryManagement.Infrastructure.DependencyInjection;
+using LibraryManagement.WebApi.Endpoints;
+
+const string ReactCorsPolicy = "ReactCorsPolicy";
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(ReactCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+/* removed controllers */
+//builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -29,8 +44,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+app.UseCors(ReactCorsPolicy);
 
-app.MapControllers();
+/* removed controllers */
+//app.MapControllers();
+
+app.MapBookEndpoints();
 
 app.Run();

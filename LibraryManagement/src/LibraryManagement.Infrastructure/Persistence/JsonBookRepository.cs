@@ -13,25 +13,25 @@ public class JsonBookRepository : IBookRepository
         _jsonFileContext = jsonFileContext;
     }
 
-    public async Task<IReadOnlyCollection<Book>> GetAllAsync()
+    public async Task<IReadOnlyCollection<Book>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync(cancellationToken);
 
         return books
             .Where(book => !book.IsDeleted)
             .ToList();
     }
 
-    public async Task<Book?> GetByCodeAsync(string code)
+    public async Task<Book?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
-        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync(cancellationToken);
 
         return books.FirstOrDefault(book =>
             !book.IsDeleted &&
             book.Code.Equals(code.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task AddAsync(Book book)
+    public async Task AddAsync(Book book, CancellationToken cancellationToken = default)
     {
         await _jsonFileContext.UpdateBooksAsync(books =>
         {
@@ -47,10 +47,11 @@ public class JsonBookRepository : IBookRepository
             books.Add(book);
 
             return true;
-        });
+        },
+        cancellationToken);
     }
 
-    public async Task<Book> UpdateByCodeAsync(string code, Action<Book> updateAction)
+    public async Task<Book> UpdateByCodeAsync(string code, Action<Book> updateAction, CancellationToken cancellationToken = default)
     {
         return await _jsonFileContext.UpdateBooksAsync(books =>
         {
@@ -68,12 +69,12 @@ public class JsonBookRepository : IBookRepository
             updateAction(book);
 
             return book;
-        });
+        }, cancellationToken);
     }
 
-    public async Task<bool> ExistsByCodeAsync(string code)
+    public async Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
-        var books = await _jsonFileContext.ReadBooksSnapshotAsync();
+        var books = await _jsonFileContext.ReadBooksSnapshotAsync(cancellationToken);
 
         return books.Any(book =>
             !book.IsDeleted &&
