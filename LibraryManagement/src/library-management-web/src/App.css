@@ -1,0 +1,40 @@
+.app-header {
+  background: linear-gradient(135deg, #08224a, #0d47a1);
+  color: white;
+  padding: 50px 20px;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.app-header h1 {
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.card-soft {
+  border: 1px solid #d6e4ff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(13, 71, 161, 0.12);
+}
+
+.form-control {
+  height: 48px;
+}
+
+.table thead th {
+  background: #0d47a1;
+  color: white;
+  padding: 18px;
+}
+
+.table td {
+  padding: 18px;
+}
+
+.status-badge {
+  background: #e8f8ef;
+  color: #198754;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
