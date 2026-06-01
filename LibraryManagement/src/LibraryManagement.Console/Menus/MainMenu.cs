@@ -209,7 +209,7 @@ public class MainMenu
     {
         string searchTerm = _inputReader.ReadRequiredString("Enter search term (title, author, or code): ");
 
-        var result = await _bookService.SearchAsync(searchTerm);
+        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = searchTerm });
 
         if (TryWriteResultError(result))
         {

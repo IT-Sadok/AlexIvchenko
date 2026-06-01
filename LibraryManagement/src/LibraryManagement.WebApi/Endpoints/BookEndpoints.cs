@@ -20,7 +20,11 @@ public static class BookEndpoints
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                result = await bookService.SearchAsync(search, cancellationToken);
+                result = await bookService.SearchAsync(
+                    new BookSearchRequest { 
+                        SearchTerm = search, 
+                        Status = string.Equals(status, "available", StringComparison.OrdinalIgnoreCase) ? Domain.Enums.BookStatus.Available : null 
+                    }, cancellationToken);
             }
             else if (string.Equals(status, "available", StringComparison.OrdinalIgnoreCase))
             {

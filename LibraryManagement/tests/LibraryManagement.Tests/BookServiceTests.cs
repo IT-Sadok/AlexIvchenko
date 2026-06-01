@@ -139,7 +139,7 @@ public class BookServiceTests
             .ReturnsAsync(books);
 
         // Act
-        var result = await _bookService.SearchAsync("clean");
+        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = "clean" });
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -163,7 +163,7 @@ public class BookServiceTests
             .ReturnsAsync(books);
 
         // Act
-        var result = await _bookService.SearchAsync("fowler");
+        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = "fowler" });
 
         // Assert
         result.IsSuccess.Should().BeTrue();

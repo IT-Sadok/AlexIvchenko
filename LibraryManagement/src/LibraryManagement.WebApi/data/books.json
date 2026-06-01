@@ -64,10 +64,22 @@
     "Author": "MS",
     "Year": 2024,
     "Code": "AI-900",
-    "Status": 1,
+    "Status": 2,
     "Id": "1c82ff01-3d14-445d-9b35-9cca1ec84252",
     "CreatedAt": "2026-05-29T13:08:11.1798063Z",
-    "UpdatedAt": "2026-05-29T13:09:02.2676125Z",
+    "UpdatedAt": "2026-06-01T09:58:01.3290058Z",
+    "IsDeleted": false,
+    "DeletedAt": null
+  },
+  {
+    "Title": "Azure",
+    "Author": "MS",
+    "Year": 2023,
+    "Code": "AZ-204",
+    "Status": 1,
+    "Id": "e537956d-70dd-40bd-b8cc-54635b2f1c9a",
+    "CreatedAt": "2026-06-01T09:57:56.9752084Z",
+    "UpdatedAt": "2026-06-01T09:58:19.2314807Z",
     "IsDeleted": false,
     "DeletedAt": null
   }

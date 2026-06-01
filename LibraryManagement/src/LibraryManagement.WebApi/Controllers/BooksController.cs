@@ -36,7 +36,7 @@ public class BooksController : Controller
     [HttpGet("search")]
     public async Task<ActionResult<IReadOnlyCollection<BookModel>>> SearchAsync([FromQuery] string term)
     {
-        var result = await _bookService.SearchAsync(term);
+        var result = await _bookService.SearchAsync(new BookSearchRequest { SearchTerm = term });
 
         return ToActionResult(result);
     }

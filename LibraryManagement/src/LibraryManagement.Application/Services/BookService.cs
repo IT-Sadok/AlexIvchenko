@@ -174,22 +174,30 @@ public class BookService : IBookService
         }
     }
 
-    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default)
+    public async Task<Result<IReadOnlyCollection<BookModel>>> SearchAsync(BookSearchRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            _bookValidator.ValidateSearchTerm(searchTerm);
-
-            string normalizedSearchTerm = searchTerm.Trim();
-
             var books = await _bookRepository.GetAllAsync(cancellationToken);
 
-            var result = books
-                .Where(book => !book.IsDeleted)
-                .Where(book =>
-                    book.Title.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    book.Author.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                    book.Code.Contains(normalizedSearchTerm, StringComparison.OrdinalIgnoreCase))
+            IEnumerable<Book> filteredBooks = books.Where(book => !book.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var searchTerm = request.SearchTerm.Trim();
+
+                filteredBooks = filteredBooks.Where(book =>
+                    book.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Author.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    book.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (request.Status.HasValue)
+            {
+                filteredBooks = filteredBooks.Where(book => book.Status == request.Status.Value);
+            }
+
+            var result = filteredBooks
                 .OrderBy(book => book.Title)
                 .Select(MapToModel)
                 .ToList();
